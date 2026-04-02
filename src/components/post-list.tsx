@@ -1,8 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from './ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
 import { Badge } from './ui/badge'
 import { formatDistanceToNow } from 'date-fns'
 import { Button } from './ui/button'
@@ -23,13 +23,30 @@ type Post = {
   } | null
 }
 
-export function PostList({ initialPosts, user }: { initialPosts: Post[], user: any }) {
+interface SimpleUser {
+  id: string
+}
+
+export function PostList({ initialPosts, user }: { initialPosts: Post[], user: SimpleUser | null }) {
   const [filter, setFilter] = useState<string>('all')
   const [sort, setSort] = useState<'desc' | 'asc'>('desc')
   const [deletingId, setDeletingId] = useState<string | null>(null)
   
   const supabase = createClient()
   const router = useRouter()
+
+  useEffect(() => {
+    const channel = supabase
+      .channel('realtime posts')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'posts' }, () => {
+        router.refresh()
+      })
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [supabase, router])
 
   const filteredPosts = initialPosts
     .filter(p => filter === 'all' || p.category === filter)
@@ -61,7 +78,7 @@ export function PostList({ initialPosts, user }: { initialPosts: Post[], user: a
       if (error) throw error
       
       router.refresh()
-    } catch (e) {
+    } catch {
       alert("Failed to delete post")
     } finally {
       setDeletingId(null)
@@ -73,7 +90,7 @@ export function PostList({ initialPosts, user }: { initialPosts: Post[], user: a
       const { error } = await supabase.from('posts').update({ status: newStatus }).eq('id', id)
       if (error) throw error
       router.refresh()
-    } catch (e) {
+    } catch {
       alert("Failed to update status")
     }
   }

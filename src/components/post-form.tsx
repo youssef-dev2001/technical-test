@@ -9,7 +9,13 @@ import { Input } from './ui/input'
 import { Label } from './ui/label'
 import { Textarea } from './ui/textarea'
 
-export function PostForm({ user }: { user: any }) {
+// We define a minimal User type to replace 'any'
+interface SimpleUser {
+  id: string
+  email?: string
+}
+
+export function PostForm({ user }: { user: SimpleUser | null }) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [file, setFile] = useState<File | null>(null)
@@ -18,6 +24,7 @@ export function PostForm({ user }: { user: any }) {
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
+    if (!user) return
     setLoading(true)
     setError(null)
     
@@ -38,7 +45,7 @@ export function PostForm({ user }: { user: any }) {
         const fileExt = file.name.split('.').pop()
         const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`
         
-        const { error: uploadError, data: uploadData } = await supabase.storage
+        const { error: uploadError } = await supabase.storage
           .from('feedback-attachments')
           .upload(fileName, file)
           
@@ -69,8 +76,12 @@ export function PostForm({ user }: { user: any }) {
       setFile(null)
       router.refresh() // Refresh the page server component
       
-    } catch (err: any) {
-      setError(err.message)
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message)
+      } else {
+        setError("An unknown error occurred")
+      }
     } finally {
       setLoading(false)
     }
