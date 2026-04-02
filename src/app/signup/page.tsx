@@ -1,13 +1,14 @@
 'use client'
 
 import { useState } from 'react'
-import { login, signup } from './actions'
+import { signup } from '@/app/login/actions'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
+import Link from 'next/link'
 
-export default function LoginPage() {
+export default function SignupPage() {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
@@ -15,7 +16,14 @@ export default function LoginPage() {
     setLoading(true)
     setError(null)
     
-    const result = await login(formData)
+    // Simple validation
+    if (!formData.get('username') || !formData.get('full_name')) {
+      setError("Username and Full Name are required for signup")
+      setLoading(false)
+      return
+    }
+
+    const result = await signup(formData)
     
     if (result && !result.success) {
       setError(result.message)
@@ -28,13 +36,22 @@ export default function LoginPage() {
     <div className="flex min-h-screen items-center justify-center p-4 bg-muted/30">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle className="text-2xl font-bold">Welcome back</CardTitle>
+          <CardTitle className="text-2xl font-bold">Create an account</CardTitle>
           <CardDescription>
-            Enter your email below to login to your account.
+            Enter your details below to create your account and start posting feedback.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form action={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="username">Username</Label>
+              <Input id="username" name="username" placeholder="johndoe" required />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="full_name">Full Name</Label>
+              <Input id="full_name" name="full_name" placeholder="John Doe" required />
+            </div>
+            
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input id="email" name="email" type="email" placeholder="m@example.com" required />
@@ -52,14 +69,14 @@ export default function LoginPage() {
             )}
             
             <Button className="w-full" type="submit" disabled={loading}>
-              {loading ? 'Processing...' : 'Login'}
+              {loading ? 'Processing...' : 'Sign up'}
             </Button>
           </form>
           
           <div className="mt-4 text-center text-sm">
-            Don't have an account?{' '}
-            <Link href="/signup" className="text-primary hover:underline font-medium">
-              Sign up
+            Already have an account?{' '}
+            <Link href="/login" className="text-primary hover:underline font-medium">
+              Log in
             </Link>
           </div>
         </CardContent>
